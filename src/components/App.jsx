@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import Searchbar from './Searchbar/Searchbar';
 import css from './App.module.css';
 import { Button } from './Button/Button';
@@ -7,71 +7,63 @@ import { Modal } from './Modal/Modal';
 import { Loader } from './Loader/Loader';
 import { getPictures } from 'services/api';
 
-export default class App extends React.Component {
-  state = {
-    pictureName: '',
-    pictures: [],
-    showLoadMoreButton: false,
-    page: 1,
-    isLoading: false,
-    selectedPicture: null,
-    isModalOpen: false,
-  };
+export default function App() {
+  const [pictureName, setPictureName] = useState('');
+  const [pictures, setPictures] = useState([]);
+  const [showLoadMoreButton, setShowLoadMoreButton] = useState(false);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPicture, setSelectedPicture] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  handleFormSubmit = async pictureName => {
-    this.setState({ isLoading: true });
+  const handleFormSubmit = async pictureName => {
+    setIsLoading(true);
+
     const pictures = await getPictures(pictureName, 1);
-    this.setState({
-      pictures: pictures.hits,
-      pictureName,
-      page: 1,
-      isLoading: false,
-    });
+
+    setPictures(pictures.hits);
+    setPictureName(pictureName);
+    setPage(1);
+    setIsLoading(false);
   };
 
-  handleLoadMore = async () => {
-    this.setState({ isLoading: true });
-    const { pictureName, pictures, page } = this.state;
+  const handleLoadMore = async () => {
+    setIsLoading(true);
+
     const nextPage = page + 1;
     const newPictures = await getPictures(pictureName, nextPage);
-    this.setState({
-      pictures: [...pictures, ...newPictures.hits],
-      page: nextPage,
-      showLoadMoreButton:
-        newPictures.total > pictures.length + newPictures.hits.length,
-      isLoading: false,
-    });
-  };
 
-  handleOpenModal = picture => {
-    this.setState({ selectedPicture: picture, isModalOpen: true });
-  };
-
-  handleCloseModal = () => {
-    this.setState({ selectedPicture: null, isModalOpen: false });
-  };
-
-  render() {
-    return (
-      <div className={css.app}>
-        <Searchbar onSubmitForm={this.handleFormSubmit} />
-        <ImageGallery
-          pictures={this.state.pictures}
-          onClick={this.handleOpenModal}
-        />
-        {this.state.isModalOpen && (
-          <Modal
-            onClick={this.handleCloseModal}
-            selectedPicture={this.state.selectedPicture}
-          />
-        )}
-        {this.state.isLoading && <Loader />}
-        <Button
-          showLoadMoreButton={this.state.showLoadMoreButton}
-          pictures={this.state.pictures}
-          handleLoadMore={this.handleLoadMore}
-        />
-      </div>
+    setPictures([...pictures, ...newPictures.hits]);
+    setPage(nextPage);
+    setShowLoadMoreButton(
+      newPictures.total > pictures.length + newPictures.hits.length
     );
-  }
+    setIsLoading(false);
+  };
+
+  const handleOpenModal = picture => {
+    setSelectedPicture(picture);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedPicture(null);
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div className={css.app}>
+      <Searchbar onSubmitForm={handleFormSubmit} />
+      <ImageGallery pictures={pictures} onClick={handleOpenModal} />
+      {isModalOpen && (
+        <Modal onClick={handleCloseModal} selectedPicture={selectedPicture} />
+      )}
+      {isLoading && <Loader />}
+      <Button
+        showLoadMoreButton={showLoadMoreButton}
+        pictures={pictures}
+        handleLoadMore={handleLoadMore}
+      />
+    </div>
+  );
 }
